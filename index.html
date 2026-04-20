@@ -53,6 +53,28 @@ nav{position:fixed;top:2px;left:0;right:0;z-index:200;padding:1.1rem 3rem;displa
 .hero-scroll span{font-size:0.62rem;letter-spacing:0.3em;text-transform:uppercase}
 .scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,var(--gold),transparent);animation:scrollPulse 2s ease-in-out infinite}
 @keyframes scrollPulse{0%,100%{opacity:0.3}50%{opacity:1}}
+#page-loader{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;transition:opacity 0.5s}
+#page-loader.hidden{opacity:0;pointer-events:none}
+.loader-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--gold2);font-style:italic;letter-spacing:0.15em}
+.loader-bar{width:160px;height:1px;background:var(--border);position:relative;overflow:hidden}
+.loader-bar::after{content:'';position:absolute;left:-40%;top:0;height:100%;width:40%;background:linear-gradient(to right,transparent,var(--gold),transparent);animation:loaderSlide 1.2s ease-in-out infinite}
+@keyframes loaderSlide{to{left:100%}}
+.loader-text{font-size:0.68rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--muted)}
+.sync-badge{position:fixed;bottom:5.5rem;right:2rem;z-index:998;padding:0.45rem 0.9rem;background:var(--bg2);border:1px solid rgba(201,168,76,0.25);color:var(--gold);font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;display:none;align-items:center;gap:0.5rem;font-family:'Outfit',sans-serif}
+.sync-badge.show{display:flex}
+.sync-badge.error{border-color:rgba(224,80,80,0.3);color:#d05050}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:syncPulse 0.8s ease-in-out infinite}
+.sync-badge.error .sync-dot{background:#d05050;animation:none}
+@keyframes syncPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+.cloud-setup-box{background:var(--bg);border:1px solid rgba(201,168,76,0.2);padding:1.2rem;margin-bottom:1.5rem;font-size:0.82rem;color:rgba(232,228,217,0.75);line-height:1.75}
+.cloud-setup-box strong{color:var(--gold2);font-weight:500}
+.cloud-setup-box ol{padding-left:1.2rem;margin-top:0.5rem}
+.cloud-setup-box li{margin-bottom:0.25rem}
+.cloud-setup-box a{color:var(--gold);text-decoration:underline}
+.cloud-status{display:flex;align-items:center;gap:0.6rem;font-size:0.75rem;padding:0.6rem 0.9rem;margin-bottom:1.2rem;border:1px solid var(--border)}
+.cloud-status.connected{border-color:rgba(76,175,128,0.3);color:#4caf80;background:rgba(76,175,128,0.07)}
+.cloud-status.disconnected{border-color:rgba(201,168,76,0.2);color:var(--muted);background:rgba(201,168,76,0.04)}
+.cloud-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
 section{padding:7rem 3rem}
 .container{max-width:1100px;margin:0 auto}
 .section-label{font-size:0.67rem;letter-spacing:0.38em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem;display:flex;align-items:center;gap:1rem;font-weight:400}
@@ -214,6 +236,8 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
 </head>
 <body>
 <div id="scroll-progress"></div>
+<div id="page-loader"><div class="loader-logo">QA.Portfolio</div><div class="loader-bar"></div><div class="loader-text" id="loader-text">Loading portfolio…</div></div>
+<div class="sync-badge" id="sync-badge"><div class="sync-dot"></div><span id="sync-text">Syncing…</span></div>
 <div id="mouse-spotlight"></div>
 <div id="cursor-inner"></div>
 <div id="cursor-outer"></div>
@@ -440,11 +464,33 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <div class="form-group"><label>Confirm New Password</label><input type="password" id="e-confirm-pass"></div>
       <div class="login-msg" id="pass-msg" style="display:none;margin-bottom:1rem"></div>
       <button class="btn-save" onclick="changePassword()">Update Password</button>
+      <div class="section-divider" style="margin:2rem 0"></div>
+      <p style="color:var(--gold2);font-size:0.8rem;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:1rem;font-weight:500">☁ Cloud Sync — Share Data Across All Devices</p>
+      <div class="cloud-status disconnected" id="cloud-status-badge"><div class="cloud-dot"></div><span id="cloud-status-text">Not connected — data saves locally only</span></div>
+      <div class="cloud-setup-box">
+        <strong>100% Free — uses GitHub Gist (no credit card, no limits, never expires):</strong>
+        <ol>
+          <li>Go to <a href="https://github.com" target="_blank">github.com</a> and sign up / log in (free)</li>
+          <li>Go to <a href="https://gist.github.com" target="_blank">gist.github.com</a> → set filename to <code style="color:var(--gold);font-family:'JetBrains Mono',monospace">portfolio.json</code>, content <code style="color:var(--gold);font-family:'JetBrains Mono',monospace">{}</code>, choose <strong>Public</strong> → click <strong>Create public gist</strong></li>
+          <li>Copy the <strong>Gist ID</strong> from the URL — it's the long code at the end, e.g. <code style="color:var(--gold);font-family:'JetBrains Mono',monospace">a1b2c3d4e5f6...</code></li>
+          <li>Go to <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → <strong>Generate new token (classic)</strong> → tick the <strong>gist</strong> checkbox → click Generate → copy the token</li>
+          <li>Paste both below → <strong>Save Cloud Config</strong> → done! ✓</li>
+        </ol>
+      </div>
+      <div class="form-group"><label>GitHub Gist ID</label><input type="text" id="e-bin-id" placeholder="e.g. a1b2c3d4e5f67890abcd1234ef567890"></div>
+      <div class="form-group"><label>GitHub Personal Access Token</label><input type="password" id="e-api-key" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>
+      <div class="login-msg" id="cloud-msg" style="display:none;margin-bottom:1rem"></div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <button class="btn-save" onclick="saveCloudConfig()">Save Cloud Config</button>
+        <button class="btn-add" onclick="testCloudConnection()" style="margin-bottom:0">Test Connection</button>
+        <button class="btn-danger" onclick="clearCloudConfig()" style="align-self:center">Disconnect</button>
+      </div>
     </div>
   </div>
 </div>
 <script>
 const KEYS={pw:'pf2_pw',data:'pf2_data'};
+const CLOUD_KEYS={binId:'pf2_bin_id',apiKey:'pf2_api_key'};
 // ══════════════════════════════════════════════════════════════
 // OWNER KEY — Change this to your own secret before sharing the
 // file. Anyone opening the portfolio fresh (incognito / new device)
@@ -452,14 +498,79 @@ const KEYS={pw:'pf2_pw',data:'pf2_data'};
 // ══════════════════════════════════════════════════════════════
 const OWNER_KEY='qa-portfolio-2025';
 function setScrollLock(lock){document.body.style.overflow=lock?'hidden':'';}
+// ── Cloud config helpers ──────────────────────────────────────
+function getCloudConfig(){return{binId:localStorage.getItem(CLOUD_KEYS.binId)||'',apiKey:localStorage.getItem(CLOUD_KEYS.apiKey)||''};}
+function isCloudConfigured(){const c=getCloudConfig();return!!(c.binId&&c.apiKey);}
+async function fetchFromCloud(){
+  const {binId}=getCloudConfig();
+  if(!binId)return null;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${binId}`,{
+      headers:{'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+    });
+    if(!r.ok)return null;
+    const j=await r.json();
+    const file=j.files&&(j.files['portfolio.json']||Object.values(j.files)[0]);
+    if(!file||!file.content)return null;
+    const parsed=JSON.parse(file.content);
+    return parsed&&typeof parsed==='object'&&Object.keys(parsed).length>0?parsed:null;
+  }catch{return null;}
+}
+async function pushToCloud(d){
+  const {binId,apiKey}=getCloudConfig();
+  if(!binId||!apiKey)return{ok:false,reason:'not_configured'};
+  // Strip base64 images before cloud push — too large for Gist, use URLs for cross-device images
+  const cloudData=JSON.parse(JSON.stringify(d));
+  if(cloudData.photo&&cloudData.photo.startsWith('data:'))cloudData.photo='';
+  if(cloudData.projects)cloudData.projects=cloudData.projects.map(p=>({...p,image:p.image&&p.image.startsWith('data:')?'':p.image}));
+  try{
+    const r=await fetch(`https://api.github.com/gists/${binId}`,{
+      method:'PATCH',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/vnd.github+json',
+        'Authorization':`Bearer ${apiKey}`,
+        'X-GitHub-Api-Version':'2022-11-28'
+      },
+      body:JSON.stringify({files:{'portfolio.json':{content:JSON.stringify(cloudData)}}})
+    });
+    return{ok:r.ok,status:r.status};
+  }catch(e){return{ok:false,reason:'network'};}
+}
+// ── Local cache helpers ───────────────────────────────────────
 const DEFAULT={name:'Your Name',eyebrow:'Manual QA Engineer · Software Testing Specialist',navlogo:'QA.Portfolio',roles:'Manual QA Engineer,Software Tester,Quality Analyst,Bug Hunter,UAT Specialist',bio:'Passionate about delivering flawless software through meticulous manual testing, sharp bug detection, and clear documentation — because quality is not an accident.',photo:'',resume:'',about1:"A dedicated Manual QA Engineer with a sharp eye for detail and a passion for ensuring software works exactly as it should. I specialise in writing comprehensive test cases, identifying critical bugs, and collaborating with development teams to ship reliable, high-quality products on time.",about2:"When I'm not finding bugs (on purpose!), I enjoy exploring new testing methodologies, deepening my knowledge of SDLC best practices, and helping teams build a culture of quality from the very first line of code.",stat1:'3+',stat1l:'Years in QA',stat2:'500+',stat2l:'Bugs Reported',stat3:'15+',stat3l:'Projects Tested',services:[{icon:'analytics',title:'Test Planning & Strategy',desc:'Creating detailed test plans, test strategies and traceability matrices tailored to project scope, timelines and risk areas to ensure thorough coverage.'},{icon:'consulting',title:'Bug Reporting & Tracking',desc:'Writing clear, reproducible bug reports with steps to reproduce, screenshots and logs — enabling developers to resolve issues quickly and efficiently.'},{icon:'seo',title:'Regression Testing',desc:'Executing systematic regression test suites after every release to ensure new changes do not break existing functionality or user workflows.'},{icon:'design',title:'UAT & Acceptance Testing',desc:'Facilitating User Acceptance Testing sessions, gathering stakeholder feedback, and ensuring the product meets all defined business requirements.'},{icon:'code',title:'API Testing (Manual)',desc:'Testing REST APIs manually using Postman to validate endpoints, request/response payloads, status codes, error handling, and edge cases.'},{icon:'mobile',title:'Mobile & Cross-Browser Testing',desc:'Testing web and mobile applications on real devices across iOS and Android, and across multiple browsers for consistency and compatibility.'}],skills:[{category:'Testing Types',name:'Core QA Skills',items:'Functional Testing, Regression Testing, Smoke Testing, Sanity Testing, UAT, Exploratory Testing, Ad-hoc Testing'},{category:'Tools & Platforms',name:'QA Toolset',items:'JIRA, Bugzilla, Postman, TestRail, Zephyr, Selenium IDE, Chrome DevTools, Excel'},{category:'Methodologies',name:'Processes & Documentation',items:'Agile/Scrum, SDLC, STLC, Test Case Writing, Bug Lifecycle, RTM, Sprint Planning'},{category:'Environments',name:'Testing Environments',items:'Web Apps, Mobile (Android/iOS), REST APIs, Cross-Browser, Windows, macOS'}],experience:[{period:'2023 – Present',role:'Senior Manual QA Engineer',company:'Tech Company · Full-time',desc:'Leading the QA function for a SaaS platform with 50,000+ active users. Responsible for end-to-end test planning, execution, and release sign-off each sprint cycle. Reduced post-production bugs by 45% through structured test coverage.'},{period:'2021 – 2023',role:'QA Analyst',company:'Software Agency · Full-time',desc:'Executed functional, regression, smoke, and UAT test cycles across multiple client projects in Agile teams. Authored 300+ test cases and consistently maintained the bug tracker with detailed reports in JIRA.'}],projects:[],testimonials:[],contactLinks:[{icon:'linkedin',label:'LinkedIn',url:'https://linkedin.com'},{icon:'github',label:'GitHub',url:'https://github.com'}],email:'your@email.com',phone:'',contacttext:"Looking for a detail-oriented QA Engineer to ensure your software's quality? I'm open to new opportunities, freelance testing projects, and collaborations. Let's connect!",footer:'© 2025 · Quality First, Always'};
-function loadData(){try{const s=localStorage.getItem(KEYS.data);return s?{...DEFAULT,...JSON.parse(s)}:{...DEFAULT}}catch{return{...DEFAULT}}}
-function saveData(d){localStorage.setItem(KEYS.data,JSON.stringify(d))}
+function loadLocalData(){try{const s=localStorage.getItem(KEYS.data);return s?{...DEFAULT,...JSON.parse(s)}:{...DEFAULT}}catch{return{...DEFAULT}}}
+function cacheLocal(d){try{localStorage.setItem(KEYS.data,JSON.stringify(d));}catch(e){console.warn('localStorage full',e);}}
+async function saveData(d){
+  cacheLocal(d);
+  if(!isCloudConfigured())return;
+  showSyncBadge('syncing');
+  const result=await pushToCloud(d);
+  if(result.ok){showSyncBadge('success');}
+  else{showSyncBadge('error');}
+}
 function getHash(s){let h=0;for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0}return h.toString(36)}
 function getStoredHash(){return localStorage.getItem(KEYS.pw)}
 function setStoredHash(s){localStorage.setItem(KEYS.pw,getHash(s))}
 const isFirstTime=()=>!getStoredHash();
-let DATA=loadData();
+let DATA=loadLocalData();
+let syncTimer=null;
+function showSyncBadge(state){
+  const badge=document.getElementById('sync-badge');
+  const text=document.getElementById('sync-text');
+  if(!badge)return;
+  clearTimeout(syncTimer);
+  badge.className='sync-badge show'+(state==='error'?' error':'');
+  text.textContent=state==='syncing'?'Syncing to cloud…':state==='success'?'Synced ✓':'Sync failed — check config';
+  if(state!=='syncing')syncTimer=setTimeout(()=>badge.classList.remove('show'),3000);
+}
+function updateCloudStatusUI(){
+  const badge=document.getElementById('cloud-status-badge');
+  const text=document.getElementById('cloud-status-text');
+  if(!badge||!text)return;
+  if(isCloudConfigured()){badge.className='cloud-status connected';text.textContent='Connected — data syncs globally on every save';}
+  else{badge.className='cloud-status disconnected';text.textContent='Not connected — data saves locally only';}
+}
 const svcIcons={code:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',design:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>',mobile:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18" stroke-width="2" stroke-linecap="round"/></svg>',analytics:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',seo:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',consulting:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'};
 const iconSVGs={github:'<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.338c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>',linkedin:'<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>',twitter:'<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>',instagram:'<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',email:'<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',website:'<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>'};
 function fixUrl(u){if(!u)return'#';u=u.trim();if(u.startsWith('mailto:')|| u.startsWith('http://')||u.startsWith('https://'))return u;if(u.startsWith('//'))return'https:'+u;return'https://'+u;}
@@ -577,7 +688,11 @@ function tryLogin(){
 }
 function openAdmin(){fillAdminForms();adminOverlay.classList.add('open');document.getElementById('login-password').value='';}
 document.querySelectorAll('.admin-tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));tab.classList.add('active');document.getElementById('tab-'+tab.dataset.tab).classList.add('active');});});
-function fillAdminForms(){const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};s('e-name',DATA.name);s('e-eyebrow',DATA.eyebrow);s('e-navlogo',DATA.navlogo);s('e-roles',DATA.roles);s('e-bio',DATA.bio);s('e-resume',DATA.resume);updatePhotoPreview(DATA.photo||'');s('e-about1',DATA.about1);s('e-about2',DATA.about2);s('e-stat1',DATA.stat1);s('e-stat1l',DATA.stat1l);s('e-stat2',DATA.stat2);s('e-stat2l',DATA.stat2l);s('e-stat3',DATA.stat3);s('e-stat3l',DATA.stat3l);s('e-email',DATA.email);s('e-phone',DATA.phone);s('e-contacttext',DATA.contacttext);s('e-footer',DATA.footer);renderServicesEditor();renderSkillsEditor();renderExpEditor();renderProjectsEditor();renderTestimonialsEditor();renderContactLinksEditor();}
+function fillAdminForms(){const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};s('e-name',DATA.name);s('e-eyebrow',DATA.eyebrow);s('e-navlogo',DATA.navlogo);s('e-roles',DATA.roles);s('e-bio',DATA.bio);s('e-resume',DATA.resume);updatePhotoPreview(DATA.photo||'');s('e-about1',DATA.about1);s('e-about2',DATA.about2);s('e-stat1',DATA.stat1);s('e-stat1l',DATA.stat1l);s('e-stat2',DATA.stat2);s('e-stat2l',DATA.stat2l);s('e-stat3',DATA.stat3);s('e-stat3l',DATA.stat3l);s('e-email',DATA.email);s('e-phone',DATA.phone);s('e-contacttext',DATA.contacttext);s('e-footer',DATA.footer);
+  // Populate cloud config
+  const cc=getCloudConfig();s('e-bin-id',cc.binId);s('e-api-key',cc.apiKey);
+  updateCloudStatusUI();
+  renderServicesEditor();renderSkillsEditor();renderExpEditor();renderProjectsEditor();renderTestimonialsEditor();renderContactLinksEditor();}
 function updatePhotoPreview(src){
   const name=document.getElementById('photo-upload-name');
   const prev=document.getElementById('photo-upload-preview');
@@ -631,6 +746,46 @@ function renderContactLinksEditor(){document.getElementById('contact-links-edito
 function addContactLink(){if(!DATA.contactLinks)DATA.contactLinks=[];DATA.contactLinks.push({icon:'website',label:'',url:''});renderContactLinksEditor();}
 function removeContactLink(i){DATA.contactLinks.splice(i,1);renderContactLinksEditor();}
 function saveContact(){DATA.email=document.getElementById('e-email').value;DATA.phone=document.getElementById('e-phone').value;DATA.contacttext=document.getElementById('e-contacttext').value;DATA.footer=document.getElementById('e-footer').value;DATA.contactLinks=(DATA.contactLinks||[]).map((_,i)=>({icon:document.getElementById(`cl-icon-${i}`)?.value||'website',label:document.getElementById(`cl-label-${i}`)?.value||'',url:document.getElementById(`cl-url-${i}`)?.value||''}));saveData(DATA);render();showSave();}
+function saveCloudConfig(){
+  const binId=(document.getElementById('e-bin-id').value||'').trim();
+  const apiKey=(document.getElementById('e-api-key').value||'').trim();
+  const msg=document.getElementById('cloud-msg');
+  msg.style.color='#e05050';
+  if(!binId||!apiKey){msg.textContent='Please enter both Bin ID and API Key.';msg.style.display='block';return;}
+  localStorage.setItem(CLOUD_KEYS.binId,binId);
+  localStorage.setItem(CLOUD_KEYS.apiKey,apiKey);
+  updateCloudStatusUI();
+  msg.textContent='Cloud config saved! Syncing data now…';msg.style.color='#4caf80';msg.style.display='block';
+  // Push current data to the new bin immediately
+  saveData(DATA);
+  setTimeout(()=>msg.style.display='none',4000);
+}
+async function testCloudConnection(){
+  const binId=(document.getElementById('e-bin-id').value||'').trim();
+  const apiKey=(document.getElementById('e-api-key').value||'').trim();
+  const msg=document.getElementById('cloud-msg');
+  if(!binId||!apiKey){msg.textContent='Enter Gist ID and Access Token first.';msg.style.color='#e05050';msg.style.display='block';return;}
+  msg.textContent='Testing connection…';msg.style.color='var(--gold)';msg.style.display='block';
+  try{
+    const r=await fetch(`https://api.github.com/gists/${binId}`,{
+      headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${apiKey}`,'X-GitHub-Api-Version':'2022-11-28'}
+    });
+    if(r.ok){msg.textContent='✓ Connection successful! GitHub Gist is reachable.';msg.style.color='#4caf80';}
+    else if(r.status===401){msg.textContent='✗ Invalid Access Token. Re-check on github.com/settings/tokens.';msg.style.color='#e05050';}
+    else if(r.status===404){msg.textContent='✗ Gist not found. Check the Gist ID from your gist URL.';msg.style.color='#e05050';}
+    else{msg.textContent=`✗ Error ${r.status}. Check your Gist ID and token.`;msg.style.color='#e05050';}
+  }catch{msg.textContent='✗ Network error. Check your internet connection.';msg.style.color='#e05050';}
+  setTimeout(()=>msg.style.display='none',5000);
+}
+function clearCloudConfig(){
+  if(!confirm('Disconnect cloud sync? Your data will only save locally.'))return;
+  localStorage.removeItem(CLOUD_KEYS.binId);localStorage.removeItem(CLOUD_KEYS.apiKey);
+  document.getElementById('e-bin-id').value='';document.getElementById('e-api-key').value='';
+  updateCloudStatusUI();
+  const msg=document.getElementById('cloud-msg');
+  msg.textContent='Cloud sync disconnected.';msg.style.color='var(--muted)';msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',3000);
+}
 function changePassword(){const op=document.getElementById('e-old-pass').value,np=document.getElementById('e-new-pass').value,cp=document.getElementById('e-confirm-pass').value,msg=document.getElementById('pass-msg');msg.style.color='#e05050';if(!op||!np||!cp){msg.textContent='Fill all fields.';msg.style.display='block';return;}if(!isFirstTime()&&getHash(op)!==getStoredHash()){msg.textContent='Current password is incorrect.';msg.style.display='block';return;}if(np.length<6){msg.textContent='Min. 6 characters required.';msg.style.display='block';return;}if(np!==cp){msg.textContent='Passwords do not match.';msg.style.display='block';return;}setStoredHash(np);msg.textContent='Password updated!';msg.style.color='#4caf80';msg.style.display='block';['e-old-pass','e-new-pass','e-confirm-pass'].forEach(id=>document.getElementById(id).value='');setTimeout(()=>msg.style.display='none',3000);}
 const fadeObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1});
 document.querySelectorAll('.fade-up').forEach(el=>fadeObs.observe(el));
@@ -667,7 +822,33 @@ document.querySelectorAll('.fade-up').forEach(el=>fadeObs.observe(el));
     el.addEventListener('mouseleave',()=>{inner.classList.remove('hovered');outer.classList.remove('hovered');});
   });
 })();
-render();initTyping();
+// ── Async init: fetch cloud data first, then render ───────────
+(async function init(){
+  const loader=document.getElementById('page-loader');
+  const loaderText=document.getElementById('loader-text');
+  if(isCloudConfigured()){
+    if(loaderText)loaderText.textContent='Fetching latest data…';
+    const cloudData=await fetchFromCloud();
+    if(cloudData){
+      const local=loadLocalData();
+      const merged={...DEFAULT,...cloudData};
+      // Preserve any local base64 photo (not synced to cloud due to size)
+      if(local.photo&&local.photo.startsWith('data:')&&!cloudData.photo)merged.photo=local.photo;
+      // Same for project images
+      if(merged.projects&&local.projects){
+        merged.projects=merged.projects.map((cp,i)=>{
+          const lp=local.projects&&local.projects[i];
+          return(lp&&lp.image&&lp.image.startsWith('data:')&&!cp.image)?{...cp,image:lp.image}:cp;
+        });
+      }
+      DATA=merged;
+      cacheLocal(DATA);
+    }
+  }
+  if(loader){loader.classList.add('hidden');setTimeout(()=>{loader.style.display='none';},600);}
+  render();
+  initTyping();
+})();
 </script>
 </body>
 </html>
