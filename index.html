@@ -480,10 +480,15 @@ footer{padding:2.5rem 3rem;border-top:1px solid var(--border);display:flex;justi
       <div class="form-group"><label>GitHub Gist ID</label><input type="text" id="e-bin-id" placeholder="e.g. a1b2c3d4e5f67890abcd1234ef567890"></div>
       <div class="form-group"><label>GitHub Personal Access Token</label><input type="password" id="e-api-key" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>
       <div class="login-msg" id="cloud-msg" style="display:none;margin-bottom:1rem"></div>
-      <div style="display:flex;gap:1rem;flex-wrap:wrap">
-        <button class="btn-save" onclick="saveCloudConfig()">Save Cloud Config</button>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+        <button class="btn-save" id="btn-save-cloud" onclick="saveCloudConfig()">Save Cloud Config</button>
         <button class="btn-add" onclick="testCloudConnection()" style="margin-bottom:0">Test Connection</button>
         <button class="btn-danger" onclick="clearCloudConfig()" style="align-self:center">Disconnect</button>
+      </div>
+      <div style="margin-top:1.2rem;padding:1.2rem;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.18)">
+        <p style="font-size:0.75rem;color:var(--gold2);letter-spacing:0.1em;margin-bottom:0.6rem;font-weight:500">Already have data saved? Push it to the cloud now:</p>
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.9rem;line-height:1.65">If you added your details before setting up cloud sync, click this button to upload everything to GitHub Gist right now. After this, all visitors and devices will see your data.</p>
+        <button class="btn-save" id="btn-push-all" onclick="pushAllDataNow()" style="background:var(--accent);border:none">Push All Data to Cloud Now</button>
       </div>
     </div>
   </div>
@@ -746,19 +751,26 @@ function renderContactLinksEditor(){document.getElementById('contact-links-edito
 function addContactLink(){if(!DATA.contactLinks)DATA.contactLinks=[];DATA.contactLinks.push({icon:'website',label:'',url:''});renderContactLinksEditor();}
 function removeContactLink(i){DATA.contactLinks.splice(i,1);renderContactLinksEditor();}
 function saveContact(){DATA.email=document.getElementById('e-email').value;DATA.phone=document.getElementById('e-phone').value;DATA.contacttext=document.getElementById('e-contacttext').value;DATA.footer=document.getElementById('e-footer').value;DATA.contactLinks=(DATA.contactLinks||[]).map((_,i)=>({icon:document.getElementById(`cl-icon-${i}`)?.value||'website',label:document.getElementById(`cl-label-${i}`)?.value||'',url:document.getElementById(`cl-url-${i}`)?.value||''}));saveData(DATA);render();showSave();}
-function saveCloudConfig(){
+async function saveCloudConfig(){
   const binId=(document.getElementById('e-bin-id').value||'').trim();
   const apiKey=(document.getElementById('e-api-key').value||'').trim();
   const msg=document.getElementById('cloud-msg');
+  const btn=document.getElementById('btn-save-cloud');
   msg.style.color='#e05050';
-  if(!binId||!apiKey){msg.textContent='Please enter both Bin ID and API Key.';msg.style.display='block';return;}
+  if(!binId||!apiKey){msg.textContent='Please enter both Gist ID and Access Token.';msg.style.display='block';return;}
   localStorage.setItem(CLOUD_KEYS.binId,binId);
   localStorage.setItem(CLOUD_KEYS.apiKey,apiKey);
   updateCloudStatusUI();
-  msg.textContent='Cloud config saved! Syncing data now…';msg.style.color='#4caf80';msg.style.display='block';
-  // Push current data to the new bin immediately
-  saveData(DATA);
-  setTimeout(()=>msg.style.display='none',4000);
+  msg.textContent='Pushing all your data to GitHub Gist…';msg.style.color='var(--gold)';msg.style.display='block';
+  if(btn)btn.disabled=true;
+  const result=await pushToCloud(DATA);
+  if(btn)btn.disabled=false;
+  if(result.ok){
+    msg.textContent='✓ Saved & synced! All your data is now live for everyone.';msg.style.color='#4caf80';
+  }else{
+    msg.textContent='✗ Config saved but sync failed. Check your Gist ID and token, then click "Push All Data Now".';msg.style.color='#e05050';
+  }
+  setTimeout(()=>msg.style.display='none',6000);
 }
 async function testCloudConnection(){
   const binId=(document.getElementById('e-bin-id').value||'').trim();
@@ -785,6 +797,23 @@ function clearCloudConfig(){
   const msg=document.getElementById('cloud-msg');
   msg.textContent='Cloud sync disconnected.';msg.style.color='var(--muted)';msg.style.display='block';
   setTimeout(()=>msg.style.display='none',3000);
+}
+async function pushAllDataNow(){
+  const msg=document.getElementById('cloud-msg');
+  const btn=document.getElementById('btn-push-all');
+  if(!isCloudConfigured()){msg.textContent='Set up cloud config first.';msg.style.color='#e05050';msg.style.display='block';return;}
+  msg.textContent='Pushing ALL your data to GitHub Gist…';msg.style.color='var(--gold)';msg.style.display='block';
+  if(btn){btn.disabled=true;btn.textContent='Pushing…';}
+  const result=await pushToCloud(DATA);
+  if(btn){btn.disabled=false;btn.textContent='Push All Data to Cloud Now';}
+  if(result.ok){
+    msg.textContent='✓ All data pushed! Open your portfolio in incognito — it will now show your details.';
+    msg.style.color='#4caf80';
+  }else{
+    msg.textContent=`✗ Push failed (status ${result.status||'network error'}). Check your Gist ID and token scope (needs "gist" permission).`;
+    msg.style.color='#e05050';
+  }
+  setTimeout(()=>msg.style.display='none',7000);
 }
 function changePassword(){const op=document.getElementById('e-old-pass').value,np=document.getElementById('e-new-pass').value,cp=document.getElementById('e-confirm-pass').value,msg=document.getElementById('pass-msg');msg.style.color='#e05050';if(!op||!np||!cp){msg.textContent='Fill all fields.';msg.style.display='block';return;}if(!isFirstTime()&&getHash(op)!==getStoredHash()){msg.textContent='Current password is incorrect.';msg.style.display='block';return;}if(np.length<6){msg.textContent='Min. 6 characters required.';msg.style.display='block';return;}if(np!==cp){msg.textContent='Passwords do not match.';msg.style.display='block';return;}setStoredHash(np);msg.textContent='Password updated!';msg.style.color='#4caf80';msg.style.display='block';['e-old-pass','e-new-pass','e-confirm-pass'].forEach(id=>document.getElementById(id).value='');setTimeout(()=>msg.style.display='none',3000);}
 const fadeObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1});
