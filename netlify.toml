@@ -1,0 +1,7 @@
+[build]
+  publish = "portfolio_qa_v6"
+
+[[redirects]]
+  from = "/"
+  to = "/portfolio_qa_v6.html"
+  status = 200
